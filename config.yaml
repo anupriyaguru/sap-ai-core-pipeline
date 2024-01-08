@@ -1,0 +1,30 @@
+apiVersion: ai.sap.com/v1alpha1
+kind: ServingTemplate
+metadata:
+  name: ai-core-serve-i537578 # executable id, must be unique across all your workflows (YAML files), please modify this to any value (e.g. code-pipeline-12345) if you are not the only user of your SAP AI Core instance.
+  annotations:
+    scenarios.ai.sap.com/description: "Co2 Classification Example"
+    scenarios.ai.sap.com/name: "classification"
+    executables.ai.sap.com/description: "Co2 Classification Example"
+    executables.ai.sap.com/name: "zero-shot-classification"
+  labels:
+    scenarios.ai.sap.com/id: "ai-core-scenario"
+    ai.sap.com/version: "1.0"
+spec:
+  template:
+    apiVersion: "serving.kserve.io/v1beta1"
+    metadata:
+      annotations: |
+        autoscaling.knative.dev/metric: concurrency
+        autoscaling.knative.dev/target: 1
+        autoscaling.knative.dev/targetBurstCapacity: 0
+      labels: |
+        ai.sap.com/resourcePlan: starter
+    spec: |
+        container:
+          image: docker.io/python:latest
+          command:
+            - python3
+            - '-c'
+          args:
+           - |
