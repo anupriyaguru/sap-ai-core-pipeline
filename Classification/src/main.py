@@ -22,10 +22,16 @@ class GPT:
         with open(KEY_FILE_GPT, "r") as key_file:
             svc_key = json.load(key_file)
         self.svc_key = svc_key
+        # HTTP Request using API Key
         self.svc_url = svc_key["url"]
-        self.client_id = svc_key["uaa"]["clientid"]
-        self.client_secret = svc_key["uaa"]["clientsecret"]
-        self._get_token()
+        self.api_key = svc_key["APIKey"]
+        self.headers = {
+            "Authorization":  f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        #self.client_id = svc_key["uaa"]["clientid"]
+        #self.client_secret = svc_key["uaa"]["clientsecret"]
+        #self._get_token()
 
     def _get_token(self):
         uaa_url = self.svc_key["uaa"]["url"]
@@ -68,7 +74,7 @@ Descriptions:
         except:
             self._get_token()
             response = requests.post(
-                f"{self.svc_url}/api/v1/completions",
+                f"{self.svc_url}/v1/chat/completions",
                 headers=self.headers,
                 json=data
             )
