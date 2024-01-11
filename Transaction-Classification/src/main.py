@@ -9,19 +9,7 @@ import os
 
 TRANSACTION_SOURCE = "TRANSACTION"
 TRANSACTION_TARGET = "TRANSACTION_CATEGORY"
-categories = ["Agricultural Services",
-                    "Contracted Services",
-                    "Car Rental",
-                    "Lodging",
-                    "Transportation Services",
-                    "Utility Services",
-                    "Retail Outlet Services",
-                    "Clothing Stores",
-                    "Miscellaneous Stores",
-                    "Business Services",
-                    "Professional Services and Membership Organizations",
-                    "Government Services"
-    ]
+
 
 class GPT:
     def __init__(self):
@@ -98,6 +86,8 @@ class App(Flask):
 
         # get HANA connection
         conn = self.connectToHANA()
+
+        categories = request.json["categories"]
 
         # collect transactions
         transactions = pd.DataFrame(conn.table(TRANSACTION_SOURCE, "USR_CIA6SS2GPMU6V8KX48KTLMFCS").select('ID', 'DESCRIPTION').collect())
