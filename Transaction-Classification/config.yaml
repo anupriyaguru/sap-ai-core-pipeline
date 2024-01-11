@@ -1,1 +1,38 @@
-
+apiVersion: ai.sap.com/v1alpha1
+kind: ServingTemplate
+metadata:
+  name: transaction-classification-i537578 # executable id, must be unique across all your workflows (YAML files), please modify this to any value (e.g. code-pipeline-12345) if you are not the only user of your SAP AI Core instance.
+  annotations:
+    scenarios.ai.sap.com/description: "Transaction Classification Example"
+    scenarios.ai.sap.com/name: "transaction-classification"
+    executables.ai.sap.com/description: "Transaction Classification Example"
+    executables.ai.sap.com/name: "zero-shot-classification"
+  labels:
+    scenarios.ai.sap.com/id: "transaction-classification"
+    ai.sap.com/version: "1.0"
+spec:
+  template:
+    apiVersion: "serving.kserve.io/v1beta1"
+    metadata:
+      annotations: |
+        autoscaling.knative.dev/metric: concurrency
+        autoscaling.knative.dev/target: 1
+        autoscaling.knative.dev/targetBurstCapacity: 0
+      labels: |
+        ai.sap.com/resourcePlan: starter
+    spec: |
+      predictor:
+        imagePullSecrets:
+          - name: docker-anupriyagurusamy
+        minReplicas: 1
+        maxReplicas: 5    # how much to scale
+        containers:
+        - name: kserve-container
+          image: "docker.io/anupriyagurusamy/transaction-classification:01" # Your docker image name
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              set -e && echo "Starting" && gunicorn --chdir /app/src/ main:app -b "0.0.0.0:8080" --access-logfile '-' -t 0
