@@ -9,7 +9,7 @@ metadata:
     executables.ai.sap.com/name: "zero-shot-classification"
   labels:
     scenarios.ai.sap.com/id: "transaction-classification"
-    ai.sap.com/version: "1.4"
+    ai.sap.com/version: "1.5"
 spec:
   template:
     apiVersion: "serving.kserve.io/v1beta1"
@@ -28,7 +28,7 @@ spec:
         maxReplicas: 5    # how much to scale
         containers:
         - name: kserve-container
-          image: "docker.io/anupriyagurusamy/transaction-classification:04" # Your docker image name
+          image: "docker.io/anupriyagurusamy/transaction-classification:05" # Your docker image name
           ports:
             - containerPort: 8080
               protocol: TCP
