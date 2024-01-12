@@ -130,7 +130,7 @@ class App(Flask):
 
         # log if db operation was successful
         print(insertionResult.collect())
-        print(str(processID))
+        return str(processID)
 
 
     def connectToHANA(self):
