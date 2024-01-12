@@ -9,7 +9,7 @@ metadata:
     executables.ai.sap.com/name: "zero-shot-classification"
   labels:
     scenarios.ai.sap.com/id: "transaction-classification"
-    ai.sap.com/version: "1.1"
+    ai.sap.com/version: "1.2"
 spec:
   template:
     apiVersion: "serving.kserve.io/v1beta1"
@@ -35,4 +35,4 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
             - >
-              set -e && echo "Starting" && gunicorn --chdir /app/src/main:app -b "0.0.0.0:8080" --access-logfile '-' -t 0
+              set -e && echo "Starting" && gunicorn --chdir /app/src/ main:app -b "0.0.0.0:8080" --access-logfile '-' -t 0
