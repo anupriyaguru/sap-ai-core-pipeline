@@ -9,7 +9,7 @@ metadata:
     executables.ai.sap.com/name: "zero-shot-classification"
   labels:
     scenarios.ai.sap.com/id: "transaction-classification"
-    ai.sap.com/version: "1.3"
+    ai.sap.com/version: "1.4"
 spec:
   template:
     apiVersion: "serving.kserve.io/v1beta1"
