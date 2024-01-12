@@ -138,8 +138,8 @@ class App(Flask):
         return dataframe.ConnectionContext(
             address  = "18c742bb-9f70-4a10-88f7-4fa1f5cf3ed8.hna1.prod-eu10.hanacloud.ondemand.com",
             port     = 443,
-            user     = "USR_CIA6SS2GPMU6V8KX48KTLMFCS",
-            password = "Xi2HZ-wVLt.TXUAawCe9pRwXUKii4nLsZ4mBtIlJrnY6m6xleE1.zHy-8VlHkAJAcXxlmuIiHgvaHdJoeHG8K9dUdsF7ELkR-NAySgOcpkMnLxgkT7Tgzv7m.ikOY03k")
+            user     = "AI_CLASSIFY_TRANSACTION_HDI_DB_1_0L9D8LF0B2D95AYUXLFIA5OW9_RT",
+            password = "Go9Wqtrilx89Sj7E-rqzPWVcBkdHH_MAryvcaiWaZq9k4P07bEQqKXSU-EpQDh4afNWgWG2D0VodTKgDYFsA9bIlVFqhLLCljZe9kl0cfVJmR9Hk__uRUa.x5.7.fXyt")
 
 app = App()
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
