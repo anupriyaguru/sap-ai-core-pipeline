@@ -90,7 +90,7 @@ class App(Flask):
         categories = request.json["categories"]
 
         # collect transactions
-        transactions = pd.DataFrame(conn.table(TRANSACTION_SOURCE, "USR_CIA6SS2GPMU6V8KX48KTLMFCS").select('ID', 'DESCRIPTION').collect())
+        transactions = pd.DataFrame(conn.table(TRANSACTION_SOURCE, "AI_CLASSIFY_TRANSACTION_HDI_DB_1").select('ID', 'DESCRIPTION').collect())
 
         # get distinct description from all transactions to reduce token count of the chatGPT prompt
         transactionDescriptions = { description : index for index, description in enumerate(transactions.filter(["DESCRIPTION"]).drop_duplicates().values.flatten()) }
@@ -123,7 +123,7 @@ class App(Flask):
             conn, # HANA Connection
             new_transactions, # formatted result data 
             TRANSACTION_TARGET, # result table
-            schema="USR_CIA6SS2GPMU6V8KX48KTLMFCS", # db schema matches db user
+            schema="AI_CLASSIFY_TRANSACTION_HDI_DB_1", # db schema matches db user
             replace=True,
 			append=True
         )
