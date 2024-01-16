@@ -10,21 +10,24 @@ import os
 TRANSACTION_SOURCE = "TRANSACTION"
 TRANSACTION_TARGET = "TRANSACTION_CATEGORY"
 
+KEY_FILE_GENAI = "/app/credentials/key.json"
+KEY_FILE_HANA = "/app/credentials/hana-connection.json"
 
 class GPT:
     def __init__(self):
-
-        #self.svc_key = svc_key
-        self.svc_url = "https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com/v2/inference/deployments/dedcee24541dbd38/chat/completions?api-version=2023-05-15"
-        self.client_id = "sb-93c2a0f2-916d-4347-b7ee-ebd95e0d2ca0!b148595|aicore!b540"
-        self.client_secret = "8103a851-ab3c-49ce-b0ed-dccf48051c0b$_ICYNwC_pttFOmR8xZOKiBJB-1MM0mTk_jEI7CQJu8Q="
+        with open(KEY_FILE_GENAI, "r") as key_file:
+            svc_key = json.load(key_file)
+        self.svc_key = svc_key
+        self.svc_url = svc_key["url"]
+        self.client_id = svc_key["clientid"]
+        self.client_secret = svc_key["clientsecret"]
         self._get_token()
 
     def _get_token(self):
-        uaa_url = "https://hackxperience-analytics-insight.authentication.eu10.hana.ondemand.com/oauth/token"
+        uaa_url = self.svc_key["auth_url"]
         params = {"grant_type": "client_credentials" }
         resp = requests.post(
-            f"https://hackxperience-analytics-insight.authentication.eu10.hana.ondemand.com/oauth/token",
+            f"{uaa_url}",
             auth=(self.client_id, self.client_secret),
             params=params
         )
@@ -72,13 +75,15 @@ class GPT:
                 headers=self.headers,
                 json=data
             )
-            #response = str(response.json()['choices'][0]['message']['content'])
+            response = str(response.json()['choices'][0]['message']['content'])
         return response      
 
 
 class App(Flask):
     def __init__(self):
         super().__init__(__name__)
+        with open(KEY_FILE_HANA) as file:
+            self.db_key = json.load(file)
         self.add_url_rule("/v2/inference", "inference", self.inference, methods=["POST"])
         
     def inference(self):
@@ -90,7 +95,7 @@ class App(Flask):
         categories = request.json["categories"]
 
         # collect transactions
-        transactions = pd.DataFrame(conn.table(TRANSACTION_SOURCE, "AI_CLASSIFY_TRANSACTION_HDI_DB_1").select('ID', 'DESCRIPTION').collect())
+        transactions = pd.DataFrame(conn.table(TRANSACTION_SOURCE, self.db_key["schema"]).select('ID', 'DESCRIPTION').collect())
 
         # get distinct description from all transactions to reduce token count of the chatGPT prompt
         transactionDescriptions = { description : index for index, description in enumerate(transactions.filter(["DESCRIPTION"]).drop_duplicates().values.flatten()) }
@@ -123,7 +128,7 @@ class App(Flask):
             conn, # HANA Connection
             new_transactions, # formatted result data 
             TRANSACTION_TARGET, # result table
-            schema="AI_CLASSIFY_TRANSACTION_HDI_DB_1", # db schema matches db user
+            schema=self.db_key["schema"], 
             replace=True,
 			append=True
         )
@@ -136,13 +141,14 @@ class App(Flask):
     def connectToHANA(self):
         # connect with HANA Databse
         return dataframe.ConnectionContext(
-            address  = "18c742bb-9f70-4a10-88f7-4fa1f5cf3ed8.hna1.prod-eu10.hanacloud.ondemand.com",
-            port     = 443,
-            user     = "AI_CLASSIFY_TRANSACTION_HDI_DB_1_0L9D8LF0B2D95AYUXLFIA5OW9_RT",
-            password = "Go9Wqtrilx89Sj7E-rqzPWVcBkdHH_MAryvcaiWaZq9k4P07bEQqKXSU-EpQDh4afNWgWG2D0VodTKgDYFsA9bIlVFqhLLCljZe9kl0cfVJmR9Hk__uRUa.x5.7.fXyt")
+            address  = self.db_key["host"],
+            port     = self.db_key["port"],
+            user     = self.db_key["user"],
+            password = self.db_key["password"])
 
 app = App()
-cors = CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, supports_credentials=True)
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     print(f"App started. Serving on port {port}")
