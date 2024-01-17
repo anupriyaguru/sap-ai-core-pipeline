@@ -1,5 +1,5 @@
 from hana_ml import dataframe
-from flask import Flask, request, json
+from flask import Flask, request, json, jsonify
 from flask_cors import CORS
 import pandas as pd
 import requests
@@ -84,58 +84,69 @@ class App(Flask):
         super().__init__(__name__)
         with open(KEY_FILE_HANA) as file:
             self.db_key = json.load(file)
-        self.add_url_rule("/v2/inference", "inference", self.inference, methods=["POST"])
+        self.add_url_rule("/v2/inference", "inference", self.inference, methods=["POST","OPTIONS"])
         
     def inference(self):
-        processID = uuid.uuid4()
+        if request.method == 'POST':
+            processID = uuid.uuid4()
 
         # get HANA connection
-        conn = self.connectToHANA()
+            conn = self.connectToHANA()
 
-        categories = request.json["categories"]
+            categories = request.json["categories"]
 
         # collect transactions
-        transactions = pd.DataFrame(conn.table(TRANSACTION_SOURCE, self.db_key["schema"]).select('ID', 'DESCRIPTION').collect())
+            transactions = pd.DataFrame(conn.table(TRANSACTION_SOURCE, self.db_key["schema"]).select('ID', 'DESCRIPTION').collect())
 
         # get distinct description from all transactions to reduce token count of the chatGPT prompt
-        transactionDescriptions = { description : index for index, description in enumerate(transactions.filter(["DESCRIPTION"]).drop_duplicates().values.flatten()) }
+            transactionDescriptions = { description : index for index, description in enumerate(transactions.filter(["DESCRIPTION"]).drop_duplicates().values.flatten()) }
 
-        gpt = GPT()
+            gpt = GPT()
 
         # create prompt with categories
-        chatGPTPromptBatch = gpt.createPromptBatch(categories, transactionDescriptions)
+            chatGPTPromptBatch = gpt.createPromptBatch(categories, transactionDescriptions)
 
         # get chatGPT completion for given prompt
-        completion = gpt.get_response(chatGPTPromptBatch)
+            completion = gpt.get_response(chatGPTPromptBatch)
 
         # get all table rows
-        allFindings = re.findall("^\| ?(\d*) ?\| ?(.*?) ?\|$", completion, re.MULTILINE)
+            allFindings = re.findall("^\| ?(\d*) ?\| ?(.*?) ?\|$", completion, re.MULTILINE)
 
         # turn findings into dictionary for easy access 
-        descriptionLookUp = dict(allFindings)
+            descriptionLookUp = dict(allFindings)
 
         # get Category from transaction - description
-        def lookUp(x):
-            return descriptionLookUp.get(str(transactionDescriptions.get(x, 0)), "OTHER")
+            def lookUp(x):
+                return descriptionLookUp.get(str(transactionDescriptions.get(x, 0)), "OTHER")
 
         # create new coloumn with the new category from chatGPT for each   
-        transactions["CATEGORY"] = transactions["DESCRIPTION"].apply(lookUp)
+            transactions["CATEGORY"] = transactions["DESCRIPTION"].apply(lookUp)
 
         # format transaction data for result HANA table
-        new_transactions = transactions.rename(columns = {"ID" : "TRANSACTION_ID"}).assign(ID = str(processID)).filter(["ID", "TRANSACTION_ID", "CATEGORY"])
+            new_transactions = transactions.rename(columns = {"ID" : "TRANSACTION_ID"}).assign(ID = str(processID)).filter(["ID", "TRANSACTION_ID", "CATEGORY"])
 
-        insertionResult = dataframe.create_dataframe_from_pandas(
-            conn, # HANA Connection
-            new_transactions, # formatted result data 
-            TRANSACTION_TARGET, # result table
-            schema=self.db_key["schema"], 
-            replace=True,
-			append=True
-        )
+            insertionResult = dataframe.create_dataframe_from_pandas(
+                conn, # HANA Connection
+                new_transactions, # formatted result data 
+                TRANSACTION_TARGET, # result table
+                schema=self.db_key["schema"], 
+                replace=True,
+                append=True
+            )
 
         # log if db operation was successful
-        print(insertionResult.collect())
-        return str(processID)
+            print(insertionResult.collect())
+            response = jsonify({'processid': str(processID)})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+            return response
+        else:
+            response = jsonify({'message': 'Preflight request accepted'})
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+            return response
 
 
     def connectToHANA(self):
@@ -147,7 +158,7 @@ class App(Flask):
             password = self.db_key["password"])
 
 app = App()
-CORS(app, supports_credentials=True)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
