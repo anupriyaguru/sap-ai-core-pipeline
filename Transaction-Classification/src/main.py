@@ -1,5 +1,5 @@
 from hana_ml import dataframe
-from flask import Flask, request, json, jsonify
+from flask import Flask, request, json, jsonify, Response
 from flask_cors import CORS
 import pandas as pd
 import requests
@@ -158,8 +158,17 @@ class App(Flask):
             password = self.db_key["password"])
 
 app = App()
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        res = Response()
+        res.headers['X-Content-Type-Options'] = '*'
+        res.headers['Access-Control-Allow-Origin'] = '*'
+        res.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        return res
+        
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     print(f"App started. Serving on port {port}")
